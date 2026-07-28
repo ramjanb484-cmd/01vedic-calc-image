@@ -2,13 +2,19 @@ name: Docker Build & Push
 
 on:
   push:
-    branches: [ main, master ] # Triggers on push to main or master
-  pull_request:
-    branches: [ main, master ]
+    branches: [ "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ramjanb484-cmd/01vedic-calc-image
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -19,18 +25,18 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Works for private repos automatically
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Metadata (tags, labels)
+      - name: Extract Metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=v1,enable=${{ github.ref == format('refs/heads/{0}', 'main') }} # Forces tag 'v1' on main branch
-            type=sha,prefix=,format=short # Also tags with short commit SHA
+            type=raw,value=v1
+            type=sha,prefix=,format=short
 
       - name: Build and Push
         uses: docker/build-push-action@v5
@@ -40,4 +46,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max   
+          cache-to: type=gha,mode=max
